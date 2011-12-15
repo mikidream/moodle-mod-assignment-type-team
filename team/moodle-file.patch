@@ -1,0 +1,49 @@
+/**
+The reason of this patch file:
+The url link of team marking Sheet Feedback file path can not be solved by /moodle/file.php. 
+If students click the team-marking-sheet feedback PDF file link, they can not view the files. 
+We insert the code in /moodle/file.php to solve the path of team-marking-sheet PDF.
+*/
+
+
+// security: teachers can view all assignments, students only their own
+if ((count($args) >= 3)
+and (strtolower($args[1]) == 'moddata')
+and (strtolower($args[2]) == 'assignment')) {
+
+    $lifetime = 0;  // do not cache assignments, students may reupload them
+    if ($args[4] == $USER->id) {
+        //can view own assignemnt submissions
+    } else {
+        $instance = (int)$args[3];
+        if (!$cm = get_coursemodule_from_instance('assignment', $instance, $course->id)) {
+            not_found($course->id);
+        }
+        if (!has_capability('mod/assignment:grade', get_context_instance(CONTEXT_MODULE, $cm->id))) {      
+            
+            //++++++++++++++++++++++++++++++++++++++++++++++
+            //Team module patch start.
+            //comment error('Access not allowed'); and apply Team module patch.
+            //error('Access not allowed');
+            
+            $teamid = (int)$args[5];
+            if(strtolower($args[4]) == 'team' && is_int($teamid) ) {
+               
+                $teamid = $args[5] ;  
+                //check if this student in this team.          
+                if ($teamstudent = get_record('team_student', 'student', $USER->id, 'team', $teamid )) {
+                    //Team members can view team submission            
+                } else {
+                    error('Access not allowed');
+                }
+           
+            
+            } else {
+                error('Access not allowed');
+            }
+            // Team module patch end.
+            //++++++++++++++++++++++++++++++++++++++++++++++
+            
+        }
+    }
+}
